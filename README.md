@@ -1,23 +1,30 @@
-# Gadget Display UI
+# LEELOO Display UI
 
 A retro terminal-style music sharing device UI for Raspberry Pi with a Waveshare 3.5" LCD display.
 
 ---
 
-## Current Version: React/TypeScript (Active)
+## Current Version: Python/Pillow + Frame Animations (Active)
 
-The interactive React version with expandable boxes, animations, and persistent state.
+The production Python version running on Raspberry Pi with smooth frame expansion animations.
 
-### Quick Start
+### Quick Start (Raspberry Pi)
 
 ```bash
-cd Retro-Music-Panel
-npm install
-npm run dev
-# Open http://localhost:3000
+# Copy files to Pi
+scp -r * pi@gadget.local:/home/pi/
+
+# SSH into Pi
+ssh pi@gadget.local
+
+# Run the main UI
+python3 gadget_main.py
+
+# Or run the animation demo
+python3 demo_weather_typewriter.py
 ```
 
-### Display Layout (200x400px)
+### Display Layout (480x320px)
 
 ```
 ┌─────────────────────┬─────────────────┐
@@ -26,7 +33,7 @@ npm run dev
 │  │ 72°F  ☀9  🌧1   ││                 │
 │  └─────────────────┘│                 │
 │  ┌─────────────────┐│   Album Art     │
-│  │ time            ││   (200x200px)   │
+│  │ time            ││   (240x240px)   │
 │  │ 2:47 PM · Feb 4 ││                 │
 │  └─────────────────┘│                 │
 │  ┌─────────────────┐│                 │
@@ -40,278 +47,176 @@ npm run dev
 │  │ pushed by Amy   ││                 │
 │  └─────────────────┘│                 │
 └─────────────────────┴─────────────────┘
-       200px                200px
+       ~215px                ~265px
 ```
 
-- **Scale**: 1.37x for desktop preview, native on Pi
-- **Rendering**: `imageRendering: pixelated` for retro aesthetic
+### Frame Expansion Animations
 
-### Expandable Boxes
+Each info panel can expand to full height with smooth animations:
 
-Each box can be tapped to expand with unique interactive content:
+- **Weather**: Expands to show detailed forecast with typewriter effect
+- **Time**: Expands to show calendar/schedule
+- **Messages**: Expands to show full message threads
+- **Album**: Expands to show track details and artist info
 
-#### Weather (tan border)
-- **Collapsed**: Temperature, sun index (0-10), rain index (0-10) with dot sliders
-- **Expanded**:
-  - Typewriter weather report ("Today in Brooklyn: 72°F, bright and sunny...")
-  - ASCII weather animation (sunny/cloudy/rainy) cycling every 500ms
-  ```
-  Sunny:       Cloudy:      Rainy:
-     \  |  /     .-~~~-.     .-~~~-.
-      \ | /     (       )   (       )
-    ---( )---    `-----'     ' ' ' '
-      / | \                   ' ' '
-  ```
+#### Animation System
 
-#### Time (purple border)
-- **Collapsed**: Current time, date, seconds progress slider
-- **Expanded**: "Life in Weeks" visualization
-  - **First visit**: Asks for birthday (saved to localStorage)
-  - **Return visits**: Shows life grid immediately
-  - **Grid**: 26 columns × 40 rows (each cell = 2 weeks, 80-year lifespan)
-  - **Visual**: ■ = weeks lived (purple), □ = future weeks (faded)
-  - **Stats**: "1,456 weeks · 28 years"
+The frame animator uses:
+- **Row-by-row file I/O** to avoid screen tearing (critical fix!)
+- **24fps** pre-processed frames with cubic ease-in-out
+- **1.5 second** expand/collapse duration
+- **Typewriter effect** for content reveal
 
-#### Messages (lavender border)
-- **Collapsed**: Contact names (Amy, Ben)
-- **Expanded**:
-  - Sender name in bold
-  - Full message with typewriter effect
-  - Cursor animation (|) during typing
+### Architecture
 
-#### Album (green border)
-- **Collapsed**: Artist name, track title, BPM, "pushed by [friend]"
-- **Expanded** (two-phase animation):
-  1. **Phase 1** (0-3 seconds): Genre tags displayed full-screen centered
-     - Electronica, Nu-Disco, Synthwave, Indietronica
-  2. **Phase 2** (3+ seconds): Genres fade out, artist details fade in
-     - Artist name (12px bold)
-     - Location (London, UK)
-     - Bio with typewriter effect
-     - Similar artists
-     - Auto-scrolls as content fills the box
+```
+leeloo_ui_manager.py    # Event-driven state machine (THE PRO SOLUTION)
+├── UIState enum        # NORMAL, EXPANDING, EXPANDED, COLLAPSING
+├── LeelooUIManager     # Single owner of framebuffer
+│   ├── expand_weather()
+│   ├── expand_time()
+│   ├── expand_messages()
+│   └── expand_album()
+└── FrameAnimator       # Handles expand/collapse animations
+
+gadget_main.py          # Main loop (updates display every second)
+gadget_display.py       # LeelooDisplay class (renders PIL images)
+display/
+├── frame_animator.py   # Frame expansion animation system
+└── fast_fb.py          # Fast framebuffer utilities (numpy)
+```
+
+### Key Technical Fixes
+
+#### Screen Tearing Solution
+
+The Waveshare 3.5" LCD (ILI9486) has no vsync. We fixed tearing by:
+
+1. **`fbcon=map:0`** in `/boot/firmware/cmdline.txt` - Stops Linux console from fighting for fb1
+2. **Row-by-row file I/O** instead of numpy memmap - Matches working GIF demo approach
+3. **Single process architecture** - UI manager owns the framebuffer exclusively
+
+#### Critical Files Changed
+
+```bash
+# /boot/firmware/cmdline.txt - Changed fbcon=map:01 to fbcon=map:0
+# This keeps the console on fb0 (HDMI) and leaves fb1 (LCD) for our exclusive use
+```
+
+### Color Palette
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Navy | `#1A1D2E` | Background |
+| Green | `#719253` | Album box border |
+| Purple | `#9C93DD` | Time box border |
+| Lavender | `#A7AFD4` | Messages box border |
+| Tan | `#C2995E` | Weather box border |
+| Rose | `#D6697F` | "pushed by" accent |
+| White | `#FFFFFF` | Text |
 
 ### Animation Timings
 
 | Effect | Duration |
 |--------|----------|
-| Box expansion/collapse | 720ms ease |
-| Typewriter text | 100ms per character |
-| Weather ASCII frames | 500ms cycle |
-| Genre display phase | 3 seconds |
-| Fade transitions | 500ms |
-| Auto-collapse | 30 seconds after typing completes |
+| Frame expand/collapse | 1.5s (36 frames @ 24fps) |
+| Typewriter text | 30ms per character |
+| Line pause | 100ms between lines |
+| Content display | 10 seconds default |
 
-### Color Palette
+### Running Demos
 
-| Color | CSS Class | Usage |
-|-------|-----------|-------|
-| Navy | `gadget-navy` | Background |
-| Green | `gadget-green` | Album box border |
-| Purple | `gadget-purple` | Time box border |
-| Lavender | `gadget-lavender` | Messages box border |
-| Tan | `gadget-tan` | Weather box border |
-| Rose | `gadget-rose` | "pushed by" accent |
+```bash
+# Stop the main service first
+sudo systemctl stop gadget.service
 
-### Tech Stack
+# Run the weather expansion demo
+python3 demo_weather_typewriter.py
 
-- React 18 + TypeScript
-- Vite dev server
-- Tailwind CSS
-- localStorage for birthday persistence
+# Run the UI manager demo
+python3 leeloo_ui_manager.py
+
+# Run the reaction GIF demo
+python3 demo_message_expand.py
+
+# Re-enable the main service
+sudo systemctl start gadget.service
+```
 
 ### File Structure
 
 ```
-Retro-Music-Panel/
-├── client/
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── Gadget.tsx       # Main UI component
-│   │   └── lib/
-│   │       └── utils.ts         # Utility functions
-│   └── public/
-│       └── doorways-album.jpg   # Album artwork
-├── package.json
-├── tailwind.config.js
-└── vite.config.ts
-```
-
-### State Management
-
-```typescript
-// Expansion state (only one box can expand at a time)
-type ExpandedBox = 'weather' | 'time' | 'messages' | 'album' | null;
-
-// Persisted in localStorage
-'gadget-birthday' → ISO date string
+TipTop UI/
+├── gadget_main.py           # Main loop service
+├── gadget_display.py        # LeelooDisplay renderer
+├── leeloo_ui_manager.py     # Event-driven UI state machine
+├── demo_weather_typewriter.py   # Weather expansion demo
+├── demo_message_expand.py   # Reaction GIF demo
+├── display/
+│   ├── __init__.py
+│   ├── frame_animator.py    # Expand/collapse animations
+│   └── fast_fb.py           # Fast framebuffer (numpy)
+├── doorways-album.jpg       # Album artwork
+└── README.md
 ```
 
 ---
 
-## Legacy Version: Python/Pillow (Deprecated)
+## React Version (Development Preview)
 
-> ⚠️ **This version is no longer actively developed.** Use the React version above.
+The React version is used for desktop prototyping only.
 
-The original static image renderer using Python and Pillow.
-
-### Quick Start (Preview on Your Computer)
-
-#### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-#### 2. Run the Demo
-```bash
-python gadget_display.py
-```
-
-This will generate a preview image and attempt to open it. If it doesn't open automatically, check `/tmp/gadget_preview.png`
-
-### Display Layout
-
-```
-┌────────────────────┬──────────────────────────────┐
-│                    │                              │
-│  Weather (temp,    │     Album Art                │
-│  sun, rain)        │     (240x240px)              │
-│                    │                              │
-│  Time & Date       │                              │
-│                    │                              │
-│  Messages          │                              │
-│  (3 previews)      │                              │
-│                    │                              │
-│  Album Info        │     Spotify Scan Code        │
-│  (BPM, duration,   │     (orange bar)             │
-│   artist, pushed)  │                              │
-│                    │                              │
-└────────────────────┴──────────────────────────────┘
-   160px wide              320px wide
-```
-
-### Customizing the Display
-
-#### Changing Data
-
-Edit the `demo()` function in `gadget_display.py`:
-
-```python
-weather_data = {
-    'temp': 72,      # Temperature (0-100°F)
-    'sun': 60,       # Sun level (0=cloudy, 100=sunny)
-    'rain': 0,       # Rain level (0=none, 100=downpour)
-}
-
-time_data = {
-    'time_str': '2:47 PM',
-    'hour': 2,       # Hour for slider (0-12)
-    'date_str': 'Feb 4',
-}
-
-messages = [
-    {'name': 'Amy', 'preview': 'Dinner tonight?'},
-    {'name': 'Sarah', 'preview': 'See you later!'},
-    # Add more messages...
-]
-
-album_data = {
-    'bpm': 120,
-    'duration': '2:42 s',
-    'artist_1': 'Cinnamon',
-    'artist_2': 'Chasers',
-    'track': 'Doorways',
-    'pushed_by': 'Amy',
-    'current_time': '1:30',
-    'current_seconds': 90,
-    'total_seconds': 162,
-    'plays': 73,
-}
-```
-
-#### Changing Colors
-
-Colors are defined at the top of `gadget_display.py`:
-
-```python
-COLORS = {
-    'bg': '#1a1d2e',           # Background
-    'green': '#719253',         # Album box
-    'purple': '#9c93dd',        # Time box
-    'pink': '#d6697f',          # "pushed by" text
-    'tan': '#c2995e',           # Weather box
-    'border_gray': '#a7afd4',   # Borders
-    'white': '#ffffff',
-    'orange': '#ff8800',        # Spotify code
-}
-```
-
-### Deploying to Raspberry Pi
-
-#### 1. On Your Pi, Install Waveshare Libraries
+### Quick Start
 
 ```bash
-# Install BCM2835 library
-wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.71.tar.gz
-tar zxvf bcm2835-1.71.tar.gz
-cd bcm2835-1.71/
-sudo ./configure && sudo make && sudo make check && sudo make install
-
-# Install Python libraries
-pip install pillow spidev RPi.GPIO
+cd Retro-Music-Panel
+npm install
+npm run dev
+# Open http://localhost:3000
 ```
 
-#### 2. Uncomment Hardware Dependencies
+---
 
-In `requirements.txt`:
+## Deployment to Raspberry Pi
+
+### 1. Configure Display Driver
+
+The Waveshare 3.5" LCD uses the `fb_ili9486` driver via `dtoverlay=waveshare35a`.
+
+### 2. Fix Console Mapping
+
+Edit `/boot/firmware/cmdline.txt` and change:
 ```
-spidev>=3.5
-RPi.GPIO>=0.7.1
-```
-
-#### 3. Add Waveshare Display Driver
-
-Download the Waveshare 3.5" LCD driver from:
-https://www.waveshare.com/wiki/3.5inch_RPi_LCD_(G)
-
-Follow their setup guide to enable the display.
-
-#### 4. Modify Display Code
-
-In `gadget_display.py`, uncomment and configure the hardware display section:
-
-```python
-# Import Waveshare driver
-from waveshare_lcd import LCD_3inch5
-
-# In __init__:
-self.display_device = LCD_3inch5.LCD_3inch5()
-self.display_device.Init()
-
-# In show():
-self.display_device.ShowImage(self.image)
+fbcon=map:01  →  fbcon=map:0
 ```
 
-### Troubleshooting
+This prevents the Linux console from writing to the LCD (fb1).
 
-**Problem:** Fonts not found
-**Solution:** The code will fall back to default font. For better results, install DejaVu fonts:
+### 3. Install as Service
+
 ```bash
-# Ubuntu/Debian
-sudo apt-get install fonts-dejavu
-
-# macOS
-brew install font-dejavu
+sudo systemctl enable gadget.service
+sudo systemctl start gadget.service
 ```
 
-**Problem:** Image doesn't open
-**Solution:** Check `/tmp/gadget_preview.png` manually
+### 4. Troubleshooting
 
-**Problem:** Display looks wrong on Pi
-**Solution:** Verify display resolution matches (480x320). Adjust in GadgetDisplay init if needed.
+**Screen tearing during animations?**
+- Make sure `fbcon=map:0` is set
+- Stop any other processes writing to fb1
+- Use `sudo systemctl stop gadget.service` before running demos
+
+**Boot screen showing through UI?**
+- This is fbcon fighting for the display
+- The `fbcon=map:0` fix should resolve this
+
+**Animation too slow?**
+- Pre-processing should complete in ~280ms
+- Playback should hit 24fps
+- Check for other CPU-intensive processes
 
 ---
 
 ## Questions?
 
-Refer back to the design decisions document (GADGET_DESIGN_DECISIONS.md) for the full spec.
+Refer to the design decisions document for the full spec.

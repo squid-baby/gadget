@@ -16,13 +16,20 @@ Run on Pi: python3 demo_frame_expand.py
 
 import sys
 import time
+import os
 sys.path.insert(0, '/home/pi')
 
 from gadget_display import LeelooDisplay, COLORS
-from display.frame_animator import FrameAnimator, FrameType, FRAME_GEOMETRIES, EXPANDED_GEOMETRY
+from display.frame_animator import FrameAnimator, FrameType
 from PIL import Image, ImageDraw, ImageFont
-import os
-from datetime import datetime
+
+
+def hide_cursor():
+    """Hide terminal cursor on tty1"""
+    try:
+        os.system('echo -e "\\033[?25l" > /dev/tty1 2>/dev/null')
+    except:
+        pass
 
 
 def write_to_framebuffer(image, fb_path='/dev/fb1'):
@@ -46,8 +53,21 @@ def write_to_framebuffer(image, fb_path='/dev/fb1'):
         fb.write(bytes(data))
 
 
+def get_box_right(display, album_art_path):
+    """Get the actual box_right value based on album art"""
+    # Render once to get the album_x position
+    display.image = Image.new('RGB', (display.width, display.height), color=COLORS['bg'])
+    display.draw = ImageDraw.Draw(display.image)
+    album_x = display.draw_album_art(album_art_path=album_art_path)
+    info_panel_right = album_x - 5
+    box_right = info_panel_right - 5
+    return box_right
+
+
 def show_standard_ui(display, album_art_path):
     """Show the standard LEELOO UI"""
+    from datetime import datetime
+
     weather_data = {
         'temp_f': 72,
         'uv_raw': 5,
@@ -220,20 +240,28 @@ def demo_frame_expansion():
     print("Frame Expansion Animation Demo")
     print("=" * 40)
 
+    # Hide cursor first
+    hide_cursor()
+
     display = LeelooDisplay(preview_mode=False)
 
     # Find album art
     album_art_path = '/home/pi/doorways-album.jpg'
     if not os.path.exists(album_art_path):
         album_art_path = None
+        print("Warning: Album art not found, using placeholder")
+
+    # Get actual box_right value
+    box_right = get_box_right(display, album_art_path)
+    print(f"Using box_right = {box_right}")
 
     # Show standard UI first
     print("\n[1] Showing standard UI...")
     show_standard_ui(display, album_art_path)
     time.sleep(2)
 
-    # Create animator
-    animator = FrameAnimator(display, fb_path='/dev/fb1')
+    # Create animator with correct box_right
+    animator = FrameAnimator(display, box_right=box_right, fb_path='/dev/fb1')
 
     # Weather expansion
     print("\n[2] Expanding WEATHER panel...")
@@ -247,7 +275,7 @@ def demo_frame_expansion():
 
     print("    Collapsing weather...")
     animator.collapse(FrameType.WEATHER)
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Restore standard UI
     show_standard_ui(display, album_art_path)
@@ -265,7 +293,7 @@ def demo_frame_expansion():
 
     print("    Collapsing messages...")
     animator.collapse(FrameType.MESSAGES)
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Restore standard UI
     show_standard_ui(display, album_art_path)
@@ -283,7 +311,7 @@ def demo_frame_expansion():
 
     print("    Collapsing album...")
     animator.collapse(FrameType.ALBUM)
-    time.sleep(1)
+    time.sleep(0.5)
 
     # Final standard UI
     print("\n[5] Returning to standard UI...")
