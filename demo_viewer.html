@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gadget Reaction Animations Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e1a;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #719253;
+        }
+        
+        .subtitle {
+            color: #9c93dd;
+            font-size: 1.1em;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .preview-box {
+            background: #1a1d2e;
+            border: 2px solid #719253;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .preview-image {
+            width: 100%;
+            max-width: 480px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        button {
+            background: #719253;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #8aa663;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .info {
+            background: #2a2d3e;
+            border-left: 4px solid #9c93dd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        
+        .info h3 {
+            color: #9c93dd;
+            margin-bottom: 10px;
+        }
+        
+        .info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info li {
+            padding: 5px 0;
+            color: #b8a9c9;
+        }
+        
+        .info li:before {
+            content: "→ ";
+            color: #719253;
+            font-weight: bold;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: #2a2d3e;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .status.active {
+            color: #719253;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛸 Gadget Reaction Animations</h1>
+            <p class="subtitle">Phase 1: ASCII Art Display</p>
+        </header>
+        
+        <div class="status" id="status">
+            Ready to play animations
+        </div>
+        
+        <div class="preview-box">
+            <img src="/tmp/gadget_preview.png" class="preview-image" id="preview" alt="Gadget Display Preview">
+            
+            <div class="controls">
+                <button onclick="runDemo()">▶ Play All Animations</button>
+                <button onclick="refreshImage()">🔄 Refresh Image</button>
+            </div>
+        </div>
+        
+        <div class="info">
+            <h3>What You're Seeing</h3>
+            <ul>
+                <li>480×320px Waveshare LCD simulation</li>
+                <li>4 ASCII art reaction animations (love, fire, haha, wave)</li>
+                <li>Semi-transparent overlay system</li>
+                <li>Frame-based animation (150ms per frame, 2 cycles)</li>
+            </ul>
+        </div>
+        
+        <div class="info">
+            <h3>How It Works</h3>
+            <ul>
+                <li>Python renders frames using PIL (Pillow)</li>
+                <li>Each reaction has 3 animation frames</li>
+                <li>Overlay appears on top of music screen</li>
+                <li>No Pi hardware needed - works on desktop!</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        let refreshInterval = null;
+        
+        function refreshImage() {
+            const img = document.getElementById('preview');
+            const timestamp = new Date().getTime();
+            img.src = '/tmp/gadget_preview.png?' + timestamp;
+        }
+        
+        function updateStatus(message, active = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = active ? 'status active' : 'status';
+        }
+        
+        async function runDemo() {
+            updateStatus('🎬 Running animation demo...', true);
+            
+            try {
+                // Start auto-refresh
+                if (refreshInterval) clearInterval(refreshInterval);
+                refreshInterval = setInterval(refreshImage, 200);
+                
+                // Run the demo via fetch to Python script
+                const response = await fetch('/run-demo', {
+                    method: 'POST'
+                }).catch(() => {
+                    // If direct endpoint doesn't work, just refresh images
+                    console.log('Running in preview mode');
+                });
+                
+                // Keep refreshing for a bit after demo completes
+                setTimeout(() => {
+                    clearInterval(refreshInterval);
+                    refreshImage();
+                    updateStatus('✅ Demo complete! Check the image above.', false);
+                }, 15000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('⚠ Demo script must be run manually. See instructions below.', false);
+            }
+        }
+        
+        // Initial image load
+        refreshImage();
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[Unit]
+Description=LEELOO Main Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/leeloo-ui
+ExecStart=/usr/bin/python3 /home/pi/leeloo-ui/leeloo_boot.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

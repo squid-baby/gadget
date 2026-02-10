@@ -143,10 +143,10 @@ class LeelooUIManager:
 
     def _typewriter_content(self, content: ExpandedContent):
         """Typewriter effect for expanded content"""
-        content_x = 5 + 10
+        content_x = 7 + 10  # 7 = frame left edge (2px padding from outer frame at 5)
         content_y = 16 + 25
         line_height = 24
-        text_region_width = self.box_right - 5 - 20
+        text_region_width = self.box_right - 7 - 20
 
         char_delay = 0.03
         line_delay = 0.1

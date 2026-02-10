@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gadget Reaction Testing Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e1a;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #719253;
+        }
+
+        .subtitle {
+            color: #9c93dd;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 480px;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .controls-panel {
+            background: #1a1d2e;
+            border: 2px solid #719253;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+        }
+
+        .control-section h3 {
+            color: #9c93dd;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .reaction-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .reaction-btn {
+            background: linear-gradient(135deg, #2a2d3e 0%, #1a1d2e 100%);
+            border: 2px solid #719253;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reaction-btn:hover {
+            transform: translateY(-3px);
+            border-color: #8aa663;
+            box-shadow: 0 5px 20px rgba(113, 146, 83, 0.3);
+        }
+
+        .reaction-btn:active {
+            transform: translateY(0);
+        }
+
+        .reaction-btn .emoji {
+            font-size: 32px;
+        }
+
+        .reaction-btn .label {
+            font-size: 14px;
+            color: #b8a9c9;
+        }
+
+        .sender-select {
+            margin-top: 15px;
+        }
+
+        .sender-select label {
+            display: block;
+            margin-bottom: 8px;
+            color: #b8a9c9;
+            font-size: 14px;
+        }
+
+        .sender-select select {
+            width: 100%;
+            background: #2a2d3e;
+            border: 2px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .preview-box {
+            background: #000;
+            border: 3px solid #719253;
+            border-radius: 12px;
+            padding: 10px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .preview-screen {
+            width: 480px;
+            height: 320px;
+            background: #1a1d2e;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-screen img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            image-rendering: crisp-edges;
+        }
+
+        .screen-label {
+            text-align: center;
+            margin-top: 10px;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 12px;
+            background: #2a2d3e;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .status.active {
+            color: #719253;
+            font-weight: bold;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .info-box {
+            background: #2a2d3e;
+            border-left: 4px solid #9c93dd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #9c93dd;
+        }
+
+        .refresh-btn {
+            width: 100%;
+            background: #2a2d3e;
+            border: 2px solid #444;
+            color: #888;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            border-color: #719253;
+            color: #719253;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛸 Gadget Reaction Testing</h1>
+            <p class="subtitle">Click reactions to see ASCII animations on the display</p>
+        </header>
+
+        <div class="status" id="status">
+            Ready - Click a reaction button
+        </div>
+
+        <div class="main-content">
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>Tap a Reaction</h3>
+                    <div class="reaction-grid">
+                        <button class="reaction-btn" onclick="triggerReaction('love')">
+                            <span class="emoji">❤️</span>
+                            <span class="label">Love</span>
+                        </button>
+
+                        <button class="reaction-btn" onclick="triggerReaction('fire')">
+                            <span class="emoji">🔥</span>
+                            <span class="label">Fire</span>
+                        </button>
+
+                        <button class="reaction-btn" onclick="triggerReaction('haha')">
+                            <span class="emoji">😂</span>
+                            <span class="label">Haha</span>
+                        </button>
+
+                        <button class="reaction-btn" onclick="triggerReaction('wave')">
+                            <span class="emoji">👋</span>
+                            <span class="label">Knock-knock</span>
+                        </button>
+                    </div>
+
+                    <div class="sender-select">
+                        <label>Who sent this reaction?</label>
+                        <select id="senderSelect">
+                            <option value="Amy">Amy</option>
+                            <option value="Ben">Ben</option>
+                            <option value="Sarah">Sarah</option>
+                            <option value="Mike">Mike</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>How it works:</strong><br>
+                    1. Click a reaction button (❤️ 🔥 😂 👋)<br>
+                    2. Python script renders the ASCII animation<br>
+                    3. Display updates in real-time (auto-refreshes every 100ms)<br>
+                    4. Message box shows: "[Name] says -" then ASCII art
+                </div>
+
+                <button class="refresh-btn" onclick="manualRefresh()">
+                    🔄 Manual Refresh
+                </button>
+            </div>
+
+            <div class="preview-box">
+                <div class="preview-screen">
+                    <img src="/tmp/gadget_preview.png?t=0" id="previewImg" alt="Gadget Display">
+                </div>
+                <div class="screen-label">
+                    480×320px Waveshare LCD Simulation
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval = null;
+        let imageCounter = 0;
+
+        function updateStatus(message, active = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = active ? 'status active' : 'status';
+        }
+
+        function refreshImage() {
+            const img = document.getElementById('previewImg');
+            imageCounter++;
+            img.src = '/tmp/gadget_preview.png?t=' + imageCounter;
+        }
+
+        function manualRefresh() {
+            refreshImage();
+            updateStatus('Image refreshed manually');
+            setTimeout(() => updateStatus('Ready - Click a reaction button'), 2000);
+        }
+
+        async function triggerReaction(reactionType) {
+            const sender = document.getElementById('senderSelect').value;
+
+            // Map reaction types to emoji
+            const emojiMap = {
+                'love': '❤️',
+                'fire': '🔥',
+                'haha': '😂',
+                'wave': '👋'
+            };
+
+            const emoji = emojiMap[reactionType];
+            updateStatus(`${emoji} Playing ${reactionType} from ${sender}...`, true);
+
+            // Start fast refresh during animation
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(refreshImage, 100); // 10fps
+
+            try {
+                // Call Python script via HTTP endpoint
+                const response = await fetch(`/trigger-reaction?type=${reactionType}&sender=${sender}`, {
+                    method: 'POST'
+                }).catch(() => {
+                    // Fallback: just refresh images
+                    console.log('Direct API not available, using file refresh only');
+                });
+
+                // Keep refreshing for animation duration
+                // Each reaction: 3 frames × 2 cycles × 150ms + 1s hold = ~2s total
+                setTimeout(() => {
+                    clearInterval(refreshInterval);
+                    refreshImage(); // One final refresh
+                    updateStatus(`✓ ${reactionType} animation complete!`);
+                    setTimeout(() => updateStatus('Ready - Click a reaction button'), 2000);
+                }, 3000);
+
+            } catch (error) {
+                console.error('Error:', error);
+                clearInterval(refreshInterval);
+                updateStatus('⚠ Error - Make sure Python demo is running');
+            }
+        }
+
+        // Start auto-refresh on page load
+        refreshInterval = setInterval(refreshImage, 500);
+
+        // Initial load
+        refreshImage();
+    </script>
+</body>
+</html>

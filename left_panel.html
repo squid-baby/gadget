@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=160, height=320">
+  <title>Gadget Left Panel</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #1a1d2e;
+      --green: #719253;
+      --purple: #9c93dd;
+      --pink: #d6697f;
+      --tan: #c2995e;
+      --border-gray: #a7afd4;
+      --white: #ffffff;
+      --orange: #ff8800;
+    }
+
+    body {
+      width: 160px;
+      height: 320px;
+      background: var(--bg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px;
+      color: var(--white);
+      padding: 3px;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 154px;
+      height: 314px;
+      border: 1px solid var(--border-gray);
+      position: relative;
+    }
+
+    .header {
+      position: absolute;
+      top: -1px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 3px;
+    }
+
+    .header span {
+      background: var(--bg);
+      padding: 0 2px;
+      color: var(--border-gray);
+      font-size: 6px;
+    }
+
+    .box {
+      margin: 6px 4px 4px 4px;
+      padding: 6px 4px 4px 4px;
+      position: relative;
+    }
+
+    .box-label {
+      position: absolute;
+      top: -4px;
+      left: 4px;
+      background: var(--bg);
+      padding: 0 2px;
+      font-size: 6px;
+    }
+
+    /* Weather Box */
+    .weather {
+      border: 1px solid var(--tan);
+      height: 52px;
+    }
+    .weather .box-label { color: var(--tan); }
+
+    /* Time Box */
+    .time {
+      border: 1px solid var(--purple);
+      height: 28px;
+    }
+    .time .box-label { color: var(--purple); }
+
+    /* Messages Box */
+    .messages {
+      border: 1px solid var(--border-gray);
+      height: 68px;
+    }
+    .messages .box-label { color: var(--border-gray); }
+
+    /* Album Box */
+    .album {
+      border: 1px solid var(--green);
+      height: 130px;
+    }
+    .album .box-label { color: var(--green); }
+
+    /* Row styling */
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1px;
+    }
+
+    .row-label {
+      min-width: 28px;
+    }
+
+    .row-value {
+      text-align: right;
+    }
+
+    /* Dot slider */
+    .slider {
+      font-family: monospace;
+      font-size: 6px;
+      letter-spacing: -0.5px;
+      margin-top: 1px;
+      margin-bottom: 2px;
+    }
+
+    .slider-tan { color: var(--tan); }
+    .slider-purple { color: var(--purple); }
+    .slider-green { color: var(--green); }
+
+    /* Message item */
+    .message-item {
+      margin-bottom: 4px;
+    }
+
+    .message-name {
+      color: var(--white);
+      font-size: 7px;
+    }
+
+    .message-preview {
+      color: var(--border-gray);
+      font-size: 6px;
+      font-style: italic;
+    }
+
+    /* Album specific */
+    .track-name {
+      color: var(--green);
+      margin: 2px 0;
+    }
+
+    .pushed-by {
+      color: var(--pink);
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span>Gadget v1.0</span>
+      <span>tap to talk</span>
+    </div>
+
+    <!-- Weather Box -->
+    <div class="box weather">
+      <span class="box-label">weather</span>
+      <div class="row">
+        <span class="row-label">temp</span>
+        <span class="row-value">72°F</span>
+      </div>
+      <div class="slider slider-tan">■■■■■■■■■■■■■■□□□□□□</div>
+      <div class="row">
+        <span class="row-label">sun</span>
+      </div>
+      <div class="slider slider-tan">■■■■■■■■■■■■□□□□□□□□</div>
+      <div class="row">
+        <span class="row-label">rain</span>
+      </div>
+      <div class="slider slider-tan">□□□□□□□□□□□□□□□□□□□□</div>
+    </div>
+
+    <!-- Time Box -->
+    <div class="box time">
+      <span class="box-label">time</span>
+      <div class="row">
+        <span>2:47 PM</span>
+        <span>Feb 4</span>
+      </div>
+      <div class="slider slider-purple">■■■■□□□□□□□□□□□□□□□□</div>
+    </div>
+
+    <!-- Messages Box -->
+    <div class="box messages">
+      <span class="box-label">messages</span>
+      <div class="message-item">
+        <div class="message-name">Amy</div>
+        <div class="message-preview">"Dinner tonight?"</div>
+      </div>
+      <div class="message-item">
+        <div class="message-name">Sarah</div>
+        <div class="message-preview">"See you later!"</div>
+      </div>
+      <div class="message-item">
+        <div class="message-name">Mike</div>
+        <div class="message-preview">"Running late"</div>
+      </div>
+    </div>
+
+    <!-- Album Box -->
+    <div class="box album">
+      <span class="box-label">album</span>
+      <div class="row">
+        <span>120 BPM</span>
+      </div>
+      <div class="row">
+        <span class="row-label">max</span>
+        <span class="row-value">2:42 s</span>
+      </div>
+      <div>Cinnamon</div>
+      <div>Chasers</div>
+      <div class="track-name">"Doorways"</div>
+      <div class="pushed-by">pushed by Amy</div>
+      <div class="slider slider-green">■■■■■■■■■■■■□□□□□□□□</div>
+      <div class="row">
+        <span>1:30</span>
+      </div>
+      <div class="slider slider-green">■■■■■■■■■■□□□□□□□□□□</div>
+      <div class="row">
+        <span>plays</span>
+      </div>
+      <div class="slider slider-green">■■■■■■■■■■■■■■□□□□□□</div>
+    </div>
+  </div>
+</body>
+</html>

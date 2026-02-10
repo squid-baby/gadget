@@ -29,3 +29,5 @@ Thumbs.db
 
 # LCD-show driver (large, can be re-downloaded)
 LCD-show/
+leeloo_server/.env
+Retro-Music-Panel/

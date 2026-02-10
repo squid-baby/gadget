@@ -11,13 +11,17 @@ import time
 import struct
 from datetime import datetime
 
-from gadget_display import LEELOODisplay
+from gadget_display import LeelooDisplay
 from gadget_weather import get_weather
-from leeloo_data import format_countdown_display, load_data
 
-# Config file path
-CONFIG_PATH = os.environ.get("GADGET_CONFIG_PATH", "/home/pi/leeloo_config.json")
-ALBUM_ART_PATH = "/home/pi/doorways-album.jpg"
+# Config paths
+LEELOO_HOME = os.environ.get("LEELOO_HOME", "/home/pi/leeloo-ui")
+DEVICE_CONFIG_PATH = os.path.join(LEELOO_HOME, "device_config.json")
+CREW_CONFIG_PATH = os.path.join(LEELOO_HOME, "crew_config.json")
+ALBUM_ART_DIR = os.path.join(LEELOO_HOME, "album_art")
+
+# Weather refresh interval
+WEATHER_REFRESH_INTERVAL = 600  # 10 minutes
 
 
 def rgb_to_rgb565(r, g, b):
@@ -35,30 +39,56 @@ def write_to_framebuffer(img, fb_path="/dev/fb1"):
                 fb.write(struct.pack('H', pixel))
 
 
-def check_setup_needed():
-    """Check if first-time setup is needed"""
-    if not os.path.exists(CONFIG_PATH):
-        return True
+def load_device_config():
+    """Load device configuration (location, etc.)"""
     try:
-        with open(CONFIG_PATH, 'r') as f:
-            config = json.load(f)
-        # Check for required fields
-        required = ['user_name', 'contacts', 'location']
-        for field in required:
-            if not config.get(field):
-                return True
-        return not config.get('setup_complete', False)
-    except:
-        return True
+        with open(DEVICE_CONFIG_PATH, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
-def run_captive_portal_setup():
-    """Run the captive portal setup flow"""
-    from gadget_setup import lcd_update_handler
-    from captive_portal import run_captive_portal
+def load_crew_config():
+    """Load crew configuration (contacts, etc.)"""
+    try:
+        with open(CREW_CONFIG_PATH, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
-    print("Starting captive portal setup...")
-    run_captive_portal(lcd_update_callback=lcd_update_handler)
+
+def load_current_music():
+    """Load currently playing/shared music data"""
+    music_state_path = os.path.join(LEELOO_HOME, "current_music.json")
+    try:
+        with open(music_state_path, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def get_album_art_path(music_data):
+    """Get path to album art for current music"""
+    if not music_data:
+        return None
+
+    # Check for cached album art
+    if 'album_art_cached' in music_data:
+        cached_path = music_data['album_art_cached']
+        if os.path.exists(cached_path):
+            return cached_path
+
+    # Check album art directory
+    if 'spotify_uri' in music_data:
+        # Use URI hash as filename
+        import hashlib
+        uri_hash = hashlib.md5(music_data['spotify_uri'].encode()).hexdigest()[:12]
+        art_path = os.path.join(ALBUM_ART_DIR, f"{uri_hash}.jpg")
+        if os.path.exists(art_path):
+            return art_path
+
+    return None
+
 
 def main_loop():
     """Main display loop"""
@@ -67,46 +97,46 @@ def main_loop():
     # Move console off LCD
     os.system("sudo con2fbmap 1 0 2>/dev/null")
 
-    display = LEELOODisplay(preview_mode=True)
+    display = LeelooDisplay(preview_mode=False)
 
-    # Cache weather data (refresh every 10 minutes)
+    # Cache weather data
     weather_data = None
     last_weather_fetch = 0
-    WEATHER_REFRESH_INTERVAL = 600  # 10 minutes
 
-    # Load contacts from config
-    try:
-        import json
-        with open(CONFIG_PATH, 'r') as f:
-            config = json.load(f)
-        contacts = config.get('contacts', ['Amy', 'Ben'])
-    except:
-        contacts = ['Amy', 'Ben']
+    # Load initial configs
+    device_config = load_device_config()
+    crew_config = load_crew_config()
 
-    # Album data (will be dynamic later)
-    album_data = {
-        'artist': 'Cinnamon Chasers',
-        'track': 'Doorways',
-        'bpm': 120,
-        'listeners': '262K',
-        'pushed_by': 'Amy',
-    }
+    # Get location for weather (if configured)
+    latitude = device_config.get('latitude')
+    longitude = device_config.get('longitude')
+    location_configured = latitude is not None and longitude is not None
+
+    print(f"Device config: {device_config}")
+    print(f"Crew config: {crew_config}")
+    print(f"Location configured: {location_configured}")
 
     while True:
         try:
-            # Refresh weather if needed
             current_time = time.time()
-            if weather_data is None or (current_time - last_weather_fetch) > WEATHER_REFRESH_INTERVAL:
-                try:
-                    weather_data = get_weather()
-                    last_weather_fetch = current_time
-                    print(f"Weather updated: {weather_data['temp_f']}°F")
-                except Exception as e:
-                    print(f"Weather fetch failed: {e}")
-                    if weather_data is None:
-                        weather_data = {'temp_f': 72, 'uv_raw': 5, 'rain_24h_inches': 0}
 
-            # Time data
+            # ===== WEATHER =====
+            # Only fetch if location is configured
+            if location_configured:
+                if weather_data is None or (current_time - last_weather_fetch) > WEATHER_REFRESH_INTERVAL:
+                    try:
+                        weather_data = get_weather(latitude, longitude)
+                        last_weather_fetch = current_time
+                        print(f"Weather updated: {weather_data.get('temp_f', '?')}°F")
+                    except Exception as e:
+                        print(f"Weather fetch failed: {e}")
+                        # Keep old data if we had it
+            else:
+                # No location - show empty state
+                weather_data = None
+
+            # ===== TIME =====
+            # Always available (uses system time)
             now = datetime.now()
             time_data = {
                 'time_str': now.strftime('%-I:%M %p'),
@@ -114,13 +144,35 @@ def main_loop():
                 'seconds': now.second,
             }
 
-            # Render
+            # ===== CONTACTS =====
+            # From crew config, or empty
+            contacts = crew_config.get('members', [])
+
+            # ===== MUSIC =====
+            # From current music state, or empty
+            music_data = load_current_music()
+            if music_data:
+                album_data = {
+                    'artist': music_data.get('artist', ''),
+                    'track': music_data.get('track', ''),
+                    'bpm': music_data.get('bpm'),
+                    'listeners': music_data.get('listeners'),
+                    'pushed_by': music_data.get('pushed_by'),
+                    'spotify_uri': music_data.get('spotify_uri'),
+                }
+                album_art_path = get_album_art_path(music_data)
+            else:
+                # No music shared yet - empty state
+                album_data = None
+                album_art_path = None
+
+            # ===== RENDER =====
             img = display.render(
                 weather_data,
                 time_data,
                 contacts,
                 album_data,
-                album_art_path=ALBUM_ART_PATH if os.path.exists(ALBUM_ART_PATH) else None
+                album_art_path=album_art_path
             )
 
             # Write to LCD
@@ -134,18 +186,15 @@ def main_loop():
             break
         except Exception as e:
             print(f"Error in main loop: {e}")
+            import traceback
+            traceback.print_exc()
             time.sleep(5)
 
+
 def main():
-    """Entry point"""
+    """Entry point - called by leeloo_boot.py after setup is complete"""
     # Move console off LCD first
     os.system("sudo con2fbmap 1 0 2>/dev/null")
-
-    # Check if setup is needed
-    if check_setup_needed():
-        print("First-time setup required...")
-        run_captive_portal_setup()
-        # After setup completes, reload config and continue to main loop
 
     # Run main loop
     main_loop()

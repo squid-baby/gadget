@@ -1,4 +1,20 @@
-Pillow>=10.0.0
-# For Raspberry Pi hardware (uncomment when deploying to Pi):
+# LEELOO Device Requirements
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+Pillow>=10.0.0          # Image processing
+numpy>=1.24.0           # Fast array operations for framebuffer
+requests>=2.28.0        # HTTP requests for weather, Spotify
+
+# Network/Communication
+websockets>=12.0        # WebSocket client for relay server
+
+# Setup/Configuration
+qrcode[pil]>=7.4.0      # QR code generation for setup screens
+
+# Raspberry Pi hardware (auto-detected on Pi)
 # spidev>=3.5
 # RPi.GPIO>=0.7.1
+
+# Server dependencies (only needed for relay server)
+# python-telegram-bot>=21.0

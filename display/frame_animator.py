@@ -64,19 +64,21 @@ class FrameGeometry:
 
 def get_frame_geometries(box_right: int = 153):
     """Get frame geometries based on actual box_right value"""
-    width = box_right - 5
+    left_padding = 7  # 2px padding from outer frame edge (5) = 7
+    width = box_right - left_padding
     return {
-        FrameType.WEATHER: FrameGeometry(x=5, y=16, width=width, height=59, color=COLORS['tan'], label="weather"),
-        FrameType.TIME: FrameGeometry(x=5, y=83, width=width, height=71, color=COLORS['purple'], label="time"),
-        FrameType.MESSAGES: FrameGeometry(x=5, y=162, width=width, height=28, color=COLORS['lavender'], label="messages"),
-        FrameType.ALBUM: FrameGeometry(x=5, y=198, width=width, height=108, color=COLORS['green'], label="album"),
+        FrameType.WEATHER: FrameGeometry(x=left_padding, y=16, width=width, height=59, color=COLORS['tan'], label="weather"),
+        FrameType.TIME: FrameGeometry(x=left_padding, y=83, width=width, height=71, color=COLORS['purple'], label="time"),
+        FrameType.MESSAGES: FrameGeometry(x=left_padding, y=162, width=width, height=28, color=COLORS['lavender'], label="messages"),
+        FrameType.ALBUM: FrameGeometry(x=left_padding, y=198, width=width, height=108, color=COLORS['green'], label="album"),
     }
 
 
 def get_expanded_geometry(box_right: int = 153, color: str = '#A7AFD4', label: str = ""):
     """Get expanded frame geometry"""
-    width = box_right - 5
-    return FrameGeometry(x=5, y=16, width=width, height=290, color=color, label=label)
+    left_padding = 7  # 2px padding from outer frame edge (5) = 7
+    width = box_right - left_padding
+    return FrameGeometry(x=left_padding, y=16, width=width, height=290, color=color, label=label)
 
 
 def ease_in_out_cubic(t: float) -> float:
@@ -307,8 +309,8 @@ class FrameAnimator:
         on_complete: Optional[Callable]
     ):
         """Run the animation with pre-processed frames"""
-        # Animation region
-        region = (5, 10, self.box_right - 5, 296)
+        # Animation region (7 = 2px padding from outer frame edge at 5)
+        region = (7, 10, self.box_right - 7, 296)
         region_x, region_y, region_width, region_height = region
 
         # Pre-process all frames
@@ -353,3 +355,4 @@ class FrameAnimator:
 # For backwards compatibility
 FRAME_GEOMETRIES = get_frame_geometries(153)
 EXPANDED_GEOMETRY = get_expanded_geometry(153)
+LEFT_PADDING = 7  # 2px padding from outer frame edge

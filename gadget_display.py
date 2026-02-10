@@ -308,11 +308,11 @@ class LeelooDisplay:
         # ===== WEATHER BOX ===== (tan border)
         y = 16
         box_height = 59
-        self.draw.rectangle([5, y, box_right, y + box_height], outline=COLORS['tan'], width=2)
+        self.draw.rectangle([7, y, box_right, y + box_height], outline=COLORS['tan'], width=2)
         # Draw background behind label to "break" the frame, centered
         label = "weather"
         label_width = self.font_tiny.getlength(label) if hasattr(self.font_tiny, 'getlength') else len(label) * 7
-        label_x = 10
+        label_x = 13  # 3px right from frame edge
         self.draw.rectangle([label_x - 2, y - 6, label_x + label_width + 2, y + 6], fill=COLORS['bg'])
         self.draw.text((label_x, y - 5), label, font=self.font_tiny, fill=COLORS['tan'])
 
@@ -336,11 +336,11 @@ class LeelooDisplay:
         # ===== TIME BOX ===== (purple border) - includes hang countdown
         y = 83
         box_height = 71  # Was 40, added 31px for hang rows (+3px taller)
-        self.draw.rectangle([5, y, box_right, y + box_height], outline=COLORS['purple'], width=2)
+        self.draw.rectangle([7, y, box_right, y + box_height], outline=COLORS['purple'], width=2)
         # Draw background behind label to "break" the frame, centered
         label = "time"
         label_width = self.font_tiny.getlength(label) if hasattr(self.font_tiny, 'getlength') else len(label) * 7
-        label_x = 10
+        label_x = 13  # 3px right from frame edge
         self.draw.rectangle([label_x - 2, y - 6, label_x + label_width + 2, y + 6], fill=COLORS['bg'])
         self.draw.text((label_x, y - 5), label, font=self.font_tiny, fill=COLORS['purple'])
 
@@ -378,11 +378,11 @@ class LeelooDisplay:
         # ===== MESSAGES BOX ===== (lavender border) - shifted down for hang rows
         y = 162  # Was 131, shifted +31px
         box_height = 28
-        self.draw.rectangle([5, y, box_right, y + box_height], outline=COLORS['lavender'], width=2)
+        self.draw.rectangle([7, y, box_right, y + box_height], outline=COLORS['lavender'], width=2)
         # Draw background behind label to "break" the frame, centered
         label = "messages"
         label_width = self.font_tiny.getlength(label) if hasattr(self.font_tiny, 'getlength') else len(label) * 7
-        label_x = 10
+        label_x = 13  # 3px right from frame edge
         self.draw.rectangle([label_x - 2, y - 1, label_x + label_width + 2, y + 6], fill=COLORS['bg'])
         self.draw.text((label_x, y - 5), label, font=self.font_tiny, fill=COLORS['lavender'])
 
@@ -395,29 +395,44 @@ class LeelooDisplay:
 
         # ===== ALBUM BOX ===== (green border) - shifted down for hang rows
         y = 198  # Was 167, shifted +31px
-        box_height = 108  # Was 142, reduced 34px to fit
-        self.draw.rectangle([5, y, box_right, y + box_height], outline=COLORS['green'], width=2)
+        box_height = 110  # Extended 2px for more content room
+        self.draw.rectangle([7, y, box_right, y + box_height], outline=COLORS['green'], width=2)
         # Draw background behind label to "break" the frame, centered
         label = "album"
         label_width = self.font_tiny.getlength(label) if hasattr(self.font_tiny, 'getlength') else len(label) * 7
-        label_x = 10
+        label_x = 13  # 3px right from frame edge
         self.draw.rectangle([label_x - 2, y - 6, label_x + label_width + 2, y + 6], fill=COLORS['bg'])
         self.draw.text((label_x, y - 5), label, font=self.font_tiny, fill=COLORS['green'])
 
-        # Artist name (large, bold green)
-        self.draw.text((8, y + 10), album_data['artist'], font=self.font_large, fill=COLORS['green'])
+        # Artist name (large, bold green) - CENTERED
+        artist_text = album_data['artist']
+        try:
+            artist_width = self.font_large.getlength(artist_text)
+        except:
+            artist_width = len(artist_text) * 9
+        artist_x = 7 + (box_right - 7) // 2 - artist_width // 2
+        self.draw.text((artist_x, y + 8), artist_text, font=self.font_large, fill=COLORS['green'])
 
-        # Song name (large, same size as artist)
-        self.draw.text((8, y + 28), f'"{album_data["track"]}"', font=self.font_large, fill=COLORS['green'])
+        # Track name (large, same size as artist) - CENTERED
+        track_text = f'"{album_data["track"]}"'
+        try:
+            track_width = self.font_large.getlength(track_text)
+        except:
+            track_width = len(track_text) * 9
+        track_x = 7 + (box_right - 7) // 2 - track_width // 2
+        self.draw.text((track_x, y + 24), track_text, font=self.font_large, fill=COLORS['green'])
 
-        # BPM (smaller)
-        self.draw.text((8, y + 48), f"{album_data['bpm']} BPM", font=self.font_tiny, fill=COLORS['green'])
+        # Song name "Speeder" (smaller font, same as other info)
+        self.draw.text((12, y + 44), "Speeder", font=self.font_tiny, fill=COLORS['green'])
 
-        # Monthly listeners
-        self.draw.text((8, y + 62), f"{album_data['listeners']} monthly listeners", font=self.font_tiny, fill=COLORS['green'])
+        # BPM (smaller) - moved down to make room for song name
+        self.draw.text((12, y + 58), f"{album_data['bpm']} BPM", font=self.font_tiny, fill=COLORS['green'])
 
-        # pushed by (rose color)
-        self.draw.text((8, y + 78), f"pushed by {album_data['pushed_by']}", font=self.font_tiny, fill=COLORS['rose'])
+        # Monthly listeners - moved down
+        self.draw.text((12, y + 72), f"{album_data['listeners']} monthly listeners", font=self.font_tiny, fill=COLORS['green'])
+
+        # pushed by (rose color) - moved down
+        self.draw.text((12, y + 88), f"pushed by {album_data['pushed_by']}", font=self.font_tiny, fill=COLORS['rose'])
     
     def draw_album_art(self, album_art_path=None):
         """
@@ -604,7 +619,7 @@ class LeelooDisplay:
         # Inner message box (lavender border)
         msg_box_top = 16
         msg_box_height = 290  # Most of the frame
-        self.draw.rectangle([5, msg_box_top, box_right, msg_box_top + msg_box_height],
+        self.draw.rectangle([7, msg_box_top, box_right, msg_box_top + msg_box_height],
                            outline=COLORS['lavender'], width=2)
 
         # Message text area - use most of the box
@@ -643,7 +658,7 @@ class LeelooDisplay:
             hint_width = self.font_tiny.getlength(hint_text)
         except:
             hint_width = len(hint_text) * 7
-        hint_x = (box_right + 5) // 2 - hint_width // 2
+        hint_x = (box_right + 7) // 2 - hint_width // 2
         self.draw.text((hint_x, hint_y), hint_text,
                       font=self.font_tiny, fill=self._dim_color(COLORS['lavender']))
 
@@ -652,7 +667,7 @@ class LeelooDisplay:
             hint_width2 = self.font_tiny.getlength(hint_text2)
         except:
             hint_width2 = len(hint_text2) * 7
-        hint_x2 = (box_right + 5) // 2 - hint_width2 // 2
+        hint_x2 = (box_right + 7) // 2 - hint_width2 // 2
         self.draw.text((hint_x2, hint_y + 14), hint_text2,
                       font=self.font_tiny, fill=self._dim_color(COLORS['lavender']))
 
@@ -683,7 +698,7 @@ class LeelooDisplay:
         # Inner box (lavender border)
         msg_box_top = 16
         msg_box_height = 290
-        self.draw.rectangle([5, msg_box_top, box_right, msg_box_top + msg_box_height],
+        self.draw.rectangle([7, msg_box_top, box_right, msg_box_top + msg_box_height],
                            outline=COLORS['lavender'], width=2)
 
         # GIF takes up most of the box (no name text inside, it's in header)
@@ -708,7 +723,7 @@ class LeelooDisplay:
                 new_width = int(new_height * aspect)
 
             # Center the GIF
-            gif_x = 5 + (gif_area_width - new_width) // 2
+            gif_x = 7 + (gif_area_width - new_width) // 2
             gif_y = gif_area_top + (gif_area_height - new_height) // 2
 
             # Resize and paste
