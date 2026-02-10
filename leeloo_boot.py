@@ -104,17 +104,11 @@ def start_captive_portal():
 
     except Exception as e:
         print(f"Captive portal error: {e}")
-        # Try simpler AP setup
+        # Try using wifi_manager directly for open network AP
         try:
-            import subprocess
-            # Create a simple AP using nmcli
-            subprocess.run([
-                'sudo', 'nmcli', 'device', 'wifi', 'hotspot',
-                'ifname', 'wlan0',
-                'ssid', 'leeloo',
-                'password', 'leeloo123'
-            ], timeout=30)
-            print("Simple AP started: leeloo / leeloo123")
+            from wifi_manager import start_ap_mode
+            ssid = start_ap_mode()
+            print(f"AP started via wifi_manager: {ssid} (open network)")
         except Exception as e2:
             print(f"Simple AP also failed: {e2}")
 

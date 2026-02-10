@@ -287,10 +287,10 @@ class LeelooDisplay:
         Draw the left column with all info panels - MATCHES REACT UI EXACTLY
 
         Args:
-            weather_data: dict with 'temp_f', 'sun', 'rain' (0-10 scale for sun/rain)
+            weather_data: dict with 'temp_f', 'sun', 'rain' (0-10 scale for sun/rain) - or None for empty state
             time_data: dict with 'time_str', 'date_str', 'seconds' (0-60)
-            contacts: list of contact names (just strings, no previews)
-            album_data: dict with 'artist', 'track', 'bpm', 'listeners', 'pushed_by'
+            contacts: list of contact names (just strings, no previews) - or empty list
+            album_data: dict with 'artist', 'track', 'bpm', 'listeners', 'pushed_by' - or None for empty state
             right_edge: right edge x position for the info panel (default 158)
         """
         box_right = right_edge - 5  # Inner box right edge with padding
@@ -316,22 +316,32 @@ class LeelooDisplay:
         self.draw.rectangle([label_x - 2, y - 6, label_x + label_width + 2, y + 6], fill=COLORS['bg'])
         self.draw.text((label_x, y - 5), label, font=self.font_tiny, fill=COLORS['tan'])
 
-        # Temperature: 0°F = 0 boxes, 100°F = 12 boxes
-        temp_f = weather_data.get('temp_f', 72)
-        temp_boxes = min(12, max(0, int(temp_f * 12 / 100)))
-        self.draw.text((12, y + 8), f"{temp_f}°F", font=self.font_tiny, fill=COLORS['tan'])
-        self.draw_weather_slider(box_right, y + 8, temp_boxes, COLORS['tan'])
+        if weather_data is None:
+            # Empty state - no location configured
+            empty_text = "set location"
+            try:
+                text_width = self.font_tiny.getlength(empty_text)
+            except:
+                text_width = len(empty_text) * 7
+            text_x = 7 + (box_right - 7) // 2 - text_width // 2
+            self.draw.text((text_x, y + 22), empty_text, font=self.font_tiny, fill=self._dim_color(COLORS['tan']))
+        else:
+            # Temperature: 0°F = 0 boxes, 100°F = 12 boxes
+            temp_f = weather_data.get('temp_f', 72)
+            temp_boxes = min(12, max(0, int(temp_f * 12 / 100)))
+            self.draw.text((12, y + 8), f"{temp_f}°F", font=self.font_tiny, fill=COLORS['tan'])
+            self.draw_weather_slider(box_right, y + 8, temp_boxes, COLORS['tan'])
 
-        # UV index with color-coded slider (0-11+ scale)
-        uv_raw = weather_data.get('uv_raw', 5)
-        self.draw.text((12, y + 24), "ultra V", font=self.font_tiny, fill=COLORS['tan'])
-        self.draw_uv_slider(box_right, y + 24, uv_raw)
+            # UV index with color-coded slider (0-11+ scale)
+            uv_raw = weather_data.get('uv_raw', 5)
+            self.draw.text((12, y + 24), "ultra V", font=self.font_tiny, fill=COLORS['tan'])
+            self.draw_uv_slider(box_right, y + 24, uv_raw)
 
-        # Rain: 0" = 0 boxes, 6"+ = 12 boxes (24hr total)
-        rain_inches = weather_data.get('rain_24h_inches', 0)
-        rain_boxes = min(12, int(rain_inches * 12 / 6))
-        self.draw.text((12, y + 40), "rain", font=self.font_tiny, fill=COLORS['tan'])
-        self.draw_weather_slider(box_right, y + 40, rain_boxes, COLORS['tan'])
+            # Rain: 0" = 0 boxes, 6"+ = 12 boxes (24hr total)
+            rain_inches = weather_data.get('rain_24h_inches', 0)
+            rain_boxes = min(12, int(rain_inches * 12 / 6))
+            self.draw.text((12, y + 40), "rain", font=self.font_tiny, fill=COLORS['tan'])
+            self.draw_weather_slider(box_right, y + 40, rain_boxes, COLORS['tan'])
 
         # ===== TIME BOX ===== (purple border) - includes hang countdown
         y = 83
@@ -386,12 +396,29 @@ class LeelooDisplay:
         self.draw.rectangle([label_x - 2, y - 1, label_x + label_width + 2, y + 6], fill=COLORS['bg'])
         self.draw.text((label_x, y - 5), label, font=self.font_tiny, fill=COLORS['lavender'])
 
-        # Show contact names with unread count badges in front of each name
-        # Layout: "○Amy  ②Ben" - white circle for 0, circled numbers for counts
-        self.draw.text((12, y + 7), "○", font=self.font_symbol, fill=COLORS['lavender'])
-        self.draw.text((25, y + 8), "Amy  ", font=self.font_tiny, fill=COLORS['white'])
-        self.draw.text((68, y + 7), "②", font=self.font_symbol, fill=COLORS['lavender'])
-        self.draw.text((81, y + 8), "Ben", font=self.font_tiny, fill=COLORS['white'])
+        if not contacts:
+            # Empty state - no crew configured
+            empty_text = "no crew yet"
+            try:
+                text_width = self.font_tiny.getlength(empty_text)
+            except:
+                text_width = len(empty_text) * 7
+            text_x = 7 + (box_right - 7) // 2 - text_width // 2
+            self.draw.text((text_x, y + 8), empty_text, font=self.font_tiny, fill=self._dim_color(COLORS['lavender']))
+        else:
+            # Show contact names with unread count badges in front of each name
+            # Layout: "○Amy  ②Ben" - white circle for 0, circled numbers for counts
+            x_pos = 12
+            for i, contact in enumerate(contacts[:4]):  # Max 4 contacts shown
+                # TODO: Get actual unread counts from message state
+                self.draw.text((x_pos, y + 7), "○", font=self.font_symbol, fill=COLORS['lavender'])
+                x_pos += 13
+                self.draw.text((x_pos, y + 8), contact, font=self.font_tiny, fill=COLORS['white'])
+                try:
+                    name_width = self.font_tiny.getlength(contact)
+                except:
+                    name_width = len(contact) * 7
+                x_pos += int(name_width) + 8
 
         # ===== ALBUM BOX ===== (green border) - shifted down for hang rows
         y = 198  # Was 167, shifted +31px
@@ -404,46 +431,66 @@ class LeelooDisplay:
         self.draw.rectangle([label_x - 2, y - 6, label_x + label_width + 2, y + 6], fill=COLORS['bg'])
         self.draw.text((label_x, y - 5), label, font=self.font_tiny, fill=COLORS['green'])
 
-        # Artist name (large, bold green) - CENTERED
-        artist_text = album_data['artist']
-        try:
-            artist_width = self.font_large.getlength(artist_text)
-        except:
-            artist_width = len(artist_text) * 9
-        artist_x = 7 + (box_right - 7) // 2 - artist_width // 2
-        self.draw.text((artist_x, y + 8), artist_text, font=self.font_large, fill=COLORS['green'])
+        if album_data is None:
+            # Empty state - no music shared yet
+            empty_text = "awaiting music"
+            try:
+                text_width = self.font_tiny.getlength(empty_text)
+            except:
+                text_width = len(empty_text) * 7
+            text_x = 7 + (box_right - 7) // 2 - text_width // 2
+            text_y = y + box_height // 2 - 6
+            self.draw.text((text_x, text_y), empty_text, font=self.font_tiny, fill=self._dim_color(COLORS['green']))
+        else:
+            # Artist name (large, bold green) - CENTERED
+            artist_text = album_data.get('artist', '')
+            if artist_text:
+                try:
+                    artist_width = self.font_large.getlength(artist_text)
+                except:
+                    artist_width = len(artist_text) * 9
+                artist_x = 7 + (box_right - 7) // 2 - artist_width // 2
+                self.draw.text((artist_x, y + 8), artist_text, font=self.font_large, fill=COLORS['green'])
 
-        # Track name (large, same size as artist) - CENTERED
-        track_text = f'"{album_data["track"]}"'
-        try:
-            track_width = self.font_large.getlength(track_text)
-        except:
-            track_width = len(track_text) * 9
-        track_x = 7 + (box_right - 7) // 2 - track_width // 2
-        self.draw.text((track_x, y + 24), track_text, font=self.font_large, fill=COLORS['green'])
+            # Track name (large, same size as artist) - CENTERED
+            track_text = album_data.get('track', '')
+            if track_text:
+                track_display = f'"{track_text}"'
+                try:
+                    track_width = self.font_large.getlength(track_display)
+                except:
+                    track_width = len(track_display) * 9
+                track_x = 7 + (box_right - 7) // 2 - track_width // 2
+                self.draw.text((track_x, y + 24), track_display, font=self.font_large, fill=COLORS['green'])
 
-        # Song name "Speeder" (smaller font, same as other info)
-        self.draw.text((12, y + 44), "Speeder", font=self.font_tiny, fill=COLORS['green'])
+            # BPM (if available)
+            bpm = album_data.get('bpm')
+            if bpm:
+                self.draw.text((12, y + 44), f"{bpm} BPM", font=self.font_tiny, fill=COLORS['green'])
 
-        # BPM (smaller) - moved down to make room for song name
-        self.draw.text((12, y + 58), f"{album_data['bpm']} BPM", font=self.font_tiny, fill=COLORS['green'])
+            # Monthly listeners (if available)
+            listeners = album_data.get('listeners')
+            if listeners:
+                self.draw.text((12, y + 58), f"{listeners} monthly listeners", font=self.font_tiny, fill=COLORS['green'])
 
-        # Monthly listeners - moved down
-        self.draw.text((12, y + 72), f"{album_data['listeners']} monthly listeners", font=self.font_tiny, fill=COLORS['green'])
-
-        # pushed by (rose color) - moved down
-        self.draw.text((12, y + 88), f"pushed by {album_data['pushed_by']}", font=self.font_tiny, fill=COLORS['rose'])
+            # pushed by (rose color) - if available
+            pushed_by = album_data.get('pushed_by')
+            if pushed_by:
+                self.draw.text((12, y + 74), f"pushed by {pushed_by}", font=self.font_tiny, fill=COLORS['rose'])
     
-    def draw_album_art(self, album_art_path=None):
+    def draw_album_art(self, album_art_path=None, show_empty_scancode=False):
         """
         Draw the album art on the right side - maintains aspect ratio, with frame
 
         Args:
             album_art_path: Path to album artwork image (optional)
+            show_empty_scancode: If True and no album art, show empty scancode placeholder
 
         Returns:
             album_x: The x position where album art starts (so info panel knows where to stop)
         """
+        import os
+
         # Frame padding (same as info boxes have to main frame)
         frame_padding = 5
         frame_y = 4  # Same as main container top
@@ -475,17 +522,58 @@ class LeelooDisplay:
                 self.image.paste(album_img, (album_x, album_y))
                 return frame_x
             except Exception as e:
-                print(f"⚠️  Could not load album art: {e}")
+                print(f"Could not load album art: {e}")
 
-        # Fallback: assume square album art
-        album_width = album_height
+        # For empty state, size the frame to fit the scancode proportions
+        # Scancode is 800x1000 (0.8 aspect ratio), so when scaled to 304px height
+        # it becomes ~243px wide. Add some padding for the frame.
+        album_width = 250  # Fits scancode nicely, leaves more room for left panel
         frame_width = album_width + (frame_padding * 2)
         frame_x = self.width - frame_width - 2
         album_x = frame_x + frame_padding
 
-        # Draw frame
+        # Draw the green frame
         self.draw.rectangle([frame_x, frame_y, frame_x + frame_width, frame_y + frame_height],
                            outline=COLORS['green'], width=2)
+
+        # Try to load and center the scancode placeholder inside the frame
+        scancode_paths = [
+            '/home/pi/leeloo-ui/leeloo_empty_scancode.png',
+            os.path.join(os.path.dirname(__file__), 'leeloo_empty_scancode.png'),
+            'leeloo_empty_scancode.png'
+        ]
+
+        for scancode_path in scancode_paths:
+            if os.path.exists(scancode_path):
+                try:
+                    scancode_img = Image.open(scancode_path).convert('RGB')
+                    orig_w, orig_h = scancode_img.size
+                    aspect_ratio = orig_w / orig_h
+
+                    # Fit scancode within the frame, maintaining aspect ratio
+                    # Use smaller dimension to fit
+                    if aspect_ratio > (album_width / album_height):
+                        # Wider than frame - fit to width
+                        new_width = album_width
+                        new_height = int(new_width / aspect_ratio)
+                    else:
+                        # Taller than frame - fit to height
+                        new_height = album_height
+                        new_width = int(new_height * aspect_ratio)
+
+                    # Center within the frame
+                    scancode_x = album_x + (album_width - new_width) // 2
+                    scancode_y = album_y + (album_height - new_height) // 2
+
+                    # Resize and paste
+                    scancode_img = scancode_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    self.image.paste(scancode_img, (scancode_x, scancode_y))
+                    return frame_x
+                except Exception as e:
+                    print(f"Could not load scancode placeholder: {e}")
+
+        # Final fallback: just return frame_x (frame already drawn above)
+        # The gradient placeholder was causing layout issues, so skip it
         self._draw_placeholder_gradient(album_x, album_y, album_width, album_height)
         return frame_x
 

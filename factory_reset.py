@@ -70,28 +70,12 @@ def wipe_album_art():
 
 
 def wipe_wifi_connections():
-    """Remove saved WiFi networks"""
-    print("\n=== Wiping WiFi connections ===")
-
-    # Get list of connections
-    result = subprocess.run(
-        ['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show'],
-        capture_output=True, text=True
-    )
-
-    for line in result.stdout.strip().split('\n'):
-        if ':wifi' in line or ':802-11-wireless' in line:
-            conn_name = line.split(':')[0]
-            # Don't remove system connections, only user-added ones
-            if conn_name.startswith('netplan-') or conn_name == 'Hotspot':
-                try:
-                    subprocess.run(
-                        ['sudo', 'nmcli', 'connection', 'delete', conn_name],
-                        capture_output=True, timeout=10
-                    )
-                    print(f"  Removed WiFi: {conn_name}")
-                except Exception as e:
-                    print(f"  Failed to remove {conn_name}: {e}")
+    """Remove saved WiFi networks - DISABLED to prevent lockout"""
+    print("\n=== WiFi connections ===")
+    print("  SKIPPED - keeping WiFi to prevent lockout")
+    print("  (Pi Zero has no ethernet, wiping WiFi = bricked device)")
+    # NOTE: If you really need to wipe WiFi for shipping, do it manually
+    # AFTER confirming the captive portal is working
 
 
 def verify_reset():
